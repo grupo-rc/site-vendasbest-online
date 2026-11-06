@@ -61,6 +61,12 @@ svg{width:24px;height:24px;fill:currentColor}
 #zoom{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:9}
 #zoom.on{display:flex}#zoom img{max-width:100%;max-height:100%}
 .pend{opacity:.7}.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;padding:8px 14px;border-radius:18px;font-size:14px;display:none;z-index:8}
+.central{display:none;margin:6px 10px;padding:12px;border-radius:14px;background:#0f3d24;border:1px solid #25b864;box-shadow:0 2px 8px rgba(0,0,0,.25);font-size:14px}.central.on{display:block}
+.central .ct{font-weight:700;margin-bottom:8px;line-height:1.35}.central .cred{display:flex;gap:6px;margin-bottom:8px}
+.central .cred button{flex:1;min-width:0;padding:8px;border-radius:10px;background:#0b2a19;border:1px solid #2f7a4f;color:#fff;font-size:14px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.central .cred small{display:block;color:#9fd8b6;font-size:11px}.central .bts{display:flex;gap:6px}
+.central .bts a{flex:1;text-align:center;padding:11px 6px;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px}
+.central .b1{background:#25b864;color:#fff}.central .b2{background:#e8f6ee;color:#0b2a19}
 .wa{display:none;align-items:center;gap:10px;margin:6px 10px;padding:12px 14px;border-radius:14px;background:#25d366;color:#04210f;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)}.wa.on{display:flex}.wa svg{width:24px;height:24px;flex:none;fill:currentColor}
 </style>
 </head>
@@ -70,6 +76,11 @@ svg{width:24px;height:24px;fill:currentColor}
   <div id="msgs" aria-live="polite"></div>
   <div class="typing" id="typing"><span class="dots"><i></i><i></i><i></i></span></div>
   <div class="chips" id="chips"></div>
+  <div class="central" id="central">
+    <div class="ct">Para ativar seu teste e falar com a sua revenda, entre na Central The Best com o usuário e a senha do seu teste:</div>
+    <div class="cred"><button id="cU" type="button"><small>Usuário (toque para copiar)</small><span></span></button><button id="cS" type="button"><small>Senha (toque para copiar)</small><span></span></button></div>
+    <div class="bts"><a class="b1" id="cSite" target="_blank" rel="noopener">🌐 Entrar na Central</a><a class="b2" id="cApp" target="_blank" rel="noopener">📱 Baixar o app</a></div>
+  </div>
   <a class="wa" id="wa" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.2 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.3 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.2.5.1.6 0l.8-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.1.1.6-.1 1.2z"/></svg><span>Plano ativado! Toque aqui para falar com a gente no WhatsApp</span></a>
   <div id="emoji"></div>
   <footer>
@@ -176,8 +187,13 @@ function chips(todas) {
   const teste = todas.some(m => m.de !== 'cliente' && m.texto && /usu[aá]rio/i.test(m.texto) && /senha/i.test(m.texto)
     && !/renovado com sucesso|ativado com sucesso/i.test(m.texto));
   const pago = Boolean(lastState && lastState.whatsapp);
+  const central = lastState && lastState.central;
+  cartaoCentral(teste && central ? todas : null, central);
+  // Link que vai para a Central (9115, 06/11): o botão abre a Central em vez de pedir os planos aqui.
   const ativar = () => { if (!teste || pago) return; const b = document.createElement('button'); b.className = 'chip ativar';
-    b.textContent = '✅ Quero ativar meu plano'; b.onclick = () => enviarTexto('Quero ativar'); el.appendChild(b); };
+    if (central) { b.textContent = '✅ Entrar na Central para ativar'; b.onclick = () => window.open(central.site, '_blank', 'noopener'); }
+    else { b.textContent = '✅ Quero ativar meu plano'; b.onclick = () => enviarTexto('Quero ativar'); }
+    el.appendChild(b); };
   if (!ult || ult.de === 'cliente' || !ult.texto) { if (ult && ult.de !== 'cliente') ativar(); return; }
   const ops = [];
   for (const linha of ult.texto.split('\n')) {
@@ -191,6 +207,27 @@ function chips(todas) {
   if (!ops.length) ativar();
 }
 
+// Cartão fixo da Central: pega usuário e senha da última mensagem de teste que o robô mandou.
+function cartaoCentral(todas, central) {
+  const c = $('central');
+  if (!todas || !central || !/^https:\/\//.test(central.site) || !/^https:\/\//.test(central.app)) { c.classList.remove('on'); return; }
+  const limpa = v => String(v || '').replace(/[*_`]/g, '').trim();
+  let u = '', p = '';
+  for (const m of todas) {
+    if (m.de === 'cliente' || !m.texto || !/usu[aá]rio/i.test(m.texto) || !/senha/i.test(m.texto) || /renovado com sucesso|ativado com sucesso/i.test(m.texto)) continue;
+    const mu = m.texto.match(/usu[aá]rio[^:\n]{0,20}[:：]\s*\**\s*([^\s*]+)/i), ms = m.texto.match(/senha[^:\n]{0,20}[:：]\s*\**\s*([^\s*]+)/i);
+    if (mu && ms) { u = limpa(mu[1]); p = limpa(ms[1]); }
+  }
+  $('cSite').href = central.site; $('cApp').href = central.app;
+  const cred = c.querySelector('.cred');
+  cred.style.display = u && p ? 'flex' : 'none';
+  for (const [id, v] of [['cU', u], ['cS', p]]) {
+    const b = $(id); b.querySelector('span').textContent = v;
+    b.onclick = async () => { try { await navigator.clipboard.writeText(v); toast('Copiado!'); } catch { toast(v); } };
+  }
+  c.classList.add('on');
+}
+
 async function ler() {
   if (!token) return;
   try {
@@ -199,6 +236,7 @@ async function ler() {
     const novasLoja = r.mensagens.filter(m => m.de !== 'cliente' && !msgs.some(x => x.id === m.id)).length;
     msgs = r.mensagens;
     pend = pend.filter(p => !p.id || !msgs.some(m => m.id === p.id));
+    if (r.central) lastState = r;
     if (sig !== lastSig) { lastSig = sig; render(r); }
     const wa = $('wa'); if (r.whatsapp && /^https:\/\/wa\.me\/\d+\?text=/.test(r.whatsapp)) { wa.href = r.whatsapp; wa.classList.add('on'); lastState = r; document.querySelectorAll('.chip.ativar').forEach(x => x.remove()); let ja = false; try { ja = localStorage.getItem('tb_wa_' + token) === '1'; } catch {} if (!ja) { try { localStorage.setItem('tb_wa_' + token, '1'); } catch {} const sp = wa.querySelector('span'), padrao = sp.textContent; let n = 6; const passo = () => { if (n > 0) { sp.textContent = `Pagamento confirmado! ✅ Aguarde, vamos te levar para o nosso WhatsApp em ${n}…`; n--; setTimeout(passo, 1000); } else { sp.textContent = padrao; location.href = r.whatsapp; } }; passo(); } } else { wa.removeAttribute('href'); wa.classList.remove('on'); }
     if (novasLoja && !firstLoad && document.hidden) { unseen += novasLoja; document.title = `(${unseen}) Nova mensagem • The Best`; bip(); }
