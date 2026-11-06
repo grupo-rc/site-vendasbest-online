@@ -215,11 +215,10 @@ function chips(todas) {
 // Entrada automática (06/11/2026): abre a Central numa aba nova JÁ LOGADA no teste, com um código de uso único
 // (15 min) pedido na hora. Este chat continua aberto com o usuário e a senha. Sem código, abre a Central normal.
 async function abrirCentral(central) {
-  const aba = window.open('', '_blank');
+  // Mesma aba (06/11/2026): no navegador do WhatsApp/Instagram a aba nova falha e o código de entrada se perde.
   let destino = central.site;
   try { const r = await api({ acao: 'entradaCentral', token }); if (r && r.ok && /^https:\/\/centralthebest\.com\/#entrar=[a-f0-9]{64}$/.test(r.url)) destino = r.url; } catch { /* abre a Central normal */ }
-  if (aba) { try { aba.opener = null; } catch { /* segue */ } aba.location.href = destino; }
-  else window.location.href = destino;
+  window.location.href = destino;
 }
 
 // Cartão fixo da Central: pega usuário e senha da última mensagem de teste que o robô mandou.
