@@ -172,11 +172,14 @@ function render(st) {
     h += bubble(m, Date.parse(m.quando) <= ultimaLoja);
   }
   box.innerHTML = h;
-  if (perto || firstLoad) box.scrollTop = box.scrollHeight;
+  const rolar = perto || firstLoad;
+  if (rolar) box.scrollTop = box.scrollHeight;
   firstLoad = false;
   $('typing').classList.toggle('on', Boolean(st && st.digitando));
   $('status').textContent = st && st.digitando ? 'digitando…' : 'online';
   chips(todas);
+  // Os botões embaixo diminuem a conversa: rola de novo para a última mensagem (o teste) ficar à vista.
+  if (rolar) box.scrollTop = box.scrollHeight;
 }
 
 function chips(todas) {
@@ -188,7 +191,9 @@ function chips(todas) {
     && !/renovado com sucesso|ativado com sucesso/i.test(m.texto));
   const pago = Boolean(lastState && lastState.whatsapp);
   const central = lastState && lastState.central;
-  cartaoCentral(teste && central ? todas : null, central);
+  // Roberto 06/11 13:21: sem o cartão verde (usuário/senha + Entrar na Central + Baixar o app); só o botão
+  // "Entrar na Central para ativar" embaixo de tudo, e o teste fica visível por último na conversa.
+  cartaoCentral(null, central);
   // Link que vai para a Central (9115, 06/11): o botão abre a Central em vez de pedir os planos aqui.
   const ativar = () => { if (!teste || pago) return; const b = document.createElement('button'); b.className = 'chip ativar';
     if (central) { b.textContent = '✅ Entrar na Central para ativar'; b.onclick = () => abrirCentral(central); }
