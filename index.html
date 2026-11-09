@@ -189,6 +189,7 @@ function chips(todas) {
   // plano não foi pago. Manda o mesmo texto que o cliente digitaria; os planos e o Pix continuam saindo pelo robô da revenda.
   const teste = todas.some(m => m.de !== 'cliente' && m.texto && /usu[aá]rio/i.test(m.texto) && /senha/i.test(m.texto)
     && !/renovado com sucesso|ativado com sucesso/i.test(m.texto));
+  if (teste) { temTeste = true; marcarLead(); }
   const pago = Boolean(lastState && lastState.whatsapp);
   const central = lastState && lastState.central;
   // Roberto 06/11 13:21: sem o cartão verde (usuário/senha + Entrar na Central + Baixar o app); só o botão
@@ -371,6 +372,20 @@ $('bStart').onclick = async () => {
   } finally { $('bStart').disabled = false; $('bStart').textContent = 'Iniciar conversa'; }
 };
 botao();
+// Pixel do Meta da revenda dona do link (09/11/2026): cadastrado no painel; a página só carrega se houver um número válido.
+let pixelLigado = false;
+api({ acao: 'config', conta: CONTA, dominio: location.hostname }).then(r => {
+  if (!r || !/^\d{10,20}$/.test(String(r.pixel || '')) || window.fbq) return;
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', String(r.pixel)); fbq('track', 'PageView'); pixelLigado = true; marcarLead();
+}).catch(() => {});
+let temTeste = false;
+function marcarLead() {
+  if (!pixelLigado || !temTeste || !token) return;
+  let ja = false; try { ja = localStorage.getItem('tb_lead_' + token) === '1'; } catch {}
+  if (ja) return; try { localStorage.setItem('tb_lead_' + token, '1'); } catch {}
+  fbq('track', 'Lead');
+}
 if (token) { $('start').classList.add('hide'); ler().then(agendar); }
 })();
 </script>
