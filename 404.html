@@ -31,6 +31,7 @@ header{display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:ma
 .doc{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.18);padding:8px;border-radius:8px;text-decoration:none;color:var(--txt)}
 .pix{margin-top:6px;width:100%;padding:9px;border-radius:8px;background:#0f9d58;font-weight:700;color:#fff}
 .chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 10px 8px}
+a.chip{color:inherit;text-decoration:none;display:inline-block}
 .chip{background:var(--chip);border:1px solid #2f5fa8;border-radius:18px;padding:7px 12px;font-size:14px}
 .chip.ativar{background:#25d366;border-color:#25d366;color:#04210f;font-weight:700;font-size:15px;padding:10px 16px}
 .typing{display:none;padding:2px 12px 4px}.typing.on{display:block}
@@ -203,7 +204,24 @@ function chips(todas) {
   const ativar = () => { if (!teste || pago) return; const b = document.createElement('button'); b.className = 'chip ativar';
     if (central) { b.textContent = '✅ Entrar na Central para ativar'; b.onclick = () => abrirCentral(central); }
     else { b.textContent = '✅ Quero ativar meu plano'; b.onclick = () => enviarTexto('Quero ativar'); }
-    el.appendChild(b); };
+    el.appendChild(b);
+    // Roberto 10/11/2026: o cliente guarda o teste no PRÓPRIO WhatsApp (conversa com ele mesmo); nada passa pelo nosso número.
+    const guardar = linkMeuWhats(todas, central);
+    if (guardar) { const g = document.createElement('a'); g.className = 'chip'; g.href = guardar; g.target = '_blank'; g.rel = 'noopener';
+      g.textContent = '📲 Guardar meu teste no meu WhatsApp'; el.appendChild(g); } };
+  // Antes do teste: "testar mais tarde" (o servidor responde que o teste conta a partir da criação) e guardar o link.
+  const maisTarde = () => {
+    if (teste || pago || !ult || ult.de === 'cliente') return;
+    if (/^⏰ Sem problema!/.test(ult.texto || '')) {
+      const tel = lastState && /^\d{12,13}$/.test(String(lastState.telefoneCliente || '')) ? lastState.telefoneCliente : '';
+      if (tel) { const g = document.createElement('a'); g.className = 'chip'; g.target = '_blank'; g.rel = 'noopener';
+        g.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent('Meu teste grátis The Best 📺\nQuando for assistir, abra: ' + location.origin + '/');
+        g.textContent = '📲 Guardar o link no meu WhatsApp'; el.appendChild(g); }
+      const a = document.createElement('button'); a.className = 'chip'; a.textContent = '▶️ Quero testar agora'; a.onclick = () => enviarTexto('Quero testar agora'); el.appendChild(a);
+      return;
+    }
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = '⏰ Quero testar mais tarde'; b.onclick = () => enviarTexto('Quero testar mais tarde'); el.appendChild(b);
+  };
   if (!ult || ult.de === 'cliente' || !ult.texto) { if (ult && ult.de !== 'cliente') ativar(); return; }
   const ops = [];
   for (const linha of ult.texto.split('\n')) {
@@ -215,6 +233,17 @@ function chips(todas) {
   if (/responda\s+\*?sim\*?/i.test(ult.texto) && !ops.length) { ops.push({ v: 'SIM', l: 'SIM' }); ops.push({ v: 'NÃO', l: 'NÃO' }); }
   for (const o of ops.slice(0, 12)) { const b = document.createElement('button'); b.className = 'chip'; b.textContent = o.l; b.onclick = () => enviarTexto(o.v); el.appendChild(b); }
   if (!ops.length) ativar();
+  maisTarde();
+}
+
+function linkMeuWhats(todas, central) {
+  const tel = lastState && /^\d{12,13}$/.test(String(lastState.telefoneCliente || '')) ? lastState.telefoneCliente : '';
+  const msg = [...todas].reverse().find(m => m.de !== 'cliente' && m.texto && /usu[aá]rio/i.test(m.texto) && /senha/i.test(m.texto)
+    && !/renovado com sucesso|ativado com sucesso/i.test(m.texto));
+  if (!tel || !msg) return '';
+  const texto = 'Meu teste The Best 📺\n\n' + msg.texto.replace(/[*_`]/g, '').trim() + '\n\n'
+    + (central && /^https:\/\//.test(central.site) ? 'Para ativar e falar com a revenda: ' + central.site : 'Para voltar ao atendimento: ' + location.origin + '/');
+  return 'https://wa.me/' + tel + '?text=' + encodeURIComponent(texto);
 }
 
 // Entrada automática (06/11/2026): abre a Central numa aba nova JÁ LOGADA no teste, com um código de uso único
