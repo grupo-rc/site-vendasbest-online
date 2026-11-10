@@ -241,9 +241,20 @@ function linkMeuWhats(todas, central) {
   const msg = [...todas].reverse().find(m => m.de !== 'cliente' && m.texto && /usu[aá]rio/i.test(m.texto) && /senha/i.test(m.texto)
     && !/renovado com sucesso|ativado com sucesso/i.test(m.texto));
   if (!tel || !msg) return '';
-  const texto = 'Meu teste The Best 📺\n\n' + msg.texto.replace(/[*_`]/g, '').trim() + '\n\n'
-    + (central && /^https:\/\//.test(central.site) ? 'Para ativar e falar com a revenda: ' + central.site : 'Para voltar ao atendimento: ' + location.origin + '/');
-  return 'https://wa.me/' + tel + '?text=' + encodeURIComponent(texto);
+  // Roberto 10/11/2026: usuário, senha, link da Central e, embaixo, o WhatsApp de suporte (fica registrado no celular dele).
+  const t = msg.texto.replace(/[*_`]/g, '');
+  const campo = re => { const m = t.match(re); return m ? m[1].trim() : ''; };
+  const usuario = campo(/usu[aá]rio[^:\n]{0,20}[:：]\s*([^\s]+)/i), senha = campo(/senha[^:\n]{0,20}[:：]\s*([^\s]+)/i);
+  const codigo = campo(/(?:url ou )?c[oó]digo[^:\n]{0,20}[:：]\s*([^\n]+)/i), app = campo(/aplicativo[:\s]+([^\n]+)/i), vence = campo(/vence[^:\n]{0,10}[:：]\s*([^\n]+)/i);
+  const linhas = ['Meu teste The Best 📺', ''];
+  if (app) linhas.push('Aplicativo: ' + app);
+  if (codigo) linhas.push('Código: ' + codigo);
+  linhas.push('Usuário: ' + (usuario || '-'), 'Senha: ' + (senha || '-'));
+  if (vence) linhas.push('Vence em: ' + vence);
+  linhas.push('', (central && /^https:\/\//.test(central.site) ? 'Entrar na Central: ' + central.site : 'Voltar ao atendimento: ' + location.origin + '/'));
+  const sup = String(lastState.falarAtendente || '').match(/^https:\/\/wa\.me\/(\d{10,15})\?/);
+  if (sup) linhas.push('', 'Suporte no WhatsApp: https://wa.me/' + sup[1]);
+  return 'https://wa.me/' + tel + '?text=' + encodeURIComponent(linhas.join('\n'));
 }
 
 // Entrada automática (06/11/2026): abre a Central numa aba nova JÁ LOGADA no teste, com um código de uso único
