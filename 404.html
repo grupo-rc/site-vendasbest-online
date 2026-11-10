@@ -61,6 +61,7 @@ svg{width:24px;height:24px;fill:currentColor}
 #zoom{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:9}
 #zoom.on{display:flex}#zoom img{max-width:100%;max-height:100%}
 .pend{opacity:.7}.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;padding:8px 14px;border-radius:18px;font-size:14px;display:none;z-index:8}
+.fat{display:none;margin-left:auto;padding:8px 12px;border-radius:999px;background:#25b864;color:#fff;font-weight:800;font-size:13px;text-decoration:none;white-space:nowrap}.fat.on{display:inline-block}
 .central{display:none;margin:6px 10px;padding:12px;border-radius:14px;background:#0f3d24;border:1px solid #25b864;box-shadow:0 2px 8px rgba(0,0,0,.25);font-size:14px}.central.on{display:block}
 .central .ct{font-weight:700;margin-bottom:8px;line-height:1.35}.central .cred{display:flex;gap:6px;margin-bottom:8px}
 .central .cred button{flex:1;min-width:0;padding:8px;border-radius:10px;background:#0b2a19;border:1px solid #2f7a4f;color:#fff;font-size:14px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -72,7 +73,7 @@ svg{width:24px;height:24px;fill:currentColor}
 </head>
 <body>
 <div id="app">
-  <header><div class="av">TB</div><div><div class="hn">The Best</div><div class="hs" id="status">online</div></div></header>
+  <header><div class="av">TB</div><div><div class="hn">The Best</div><div class="hs" id="status">online</div></div><a class="fat" id="fat" target="_blank" rel="noopener">💬 Falar com o atendente</a></header>
   <div id="msgs" aria-live="polite"></div>
   <div class="typing" id="typing"><span class="dots"><i></i><i></i><i></i></span></div>
   <div class="chips" id="chips"></div>
@@ -161,6 +162,9 @@ function bubble(m, lida) {
 
 function render(st) {
   if (st) lastState = st; else st = lastState;
+  // Depois do teste (Roberto 10/11/2026): botão para falar com o atendente no WhatsApp de suporte da revenda.
+  const fat = $('fat'), linkAt = st && /^https:\/\/wa\.me\/\d{10,15}\?text=/.test(String(st.falarAtendente || '')) ? st.falarAtendente : '';
+  if (linkAt) { fat.href = linkAt; fat.classList.add('on'); } else fat.classList.remove('on');
   const box = $('msgs');
   const perto = box.scrollHeight - box.scrollTop - box.clientHeight < 140;
   const todas = msgs.concat(pend.filter(p => !msgs.some(m => m.id === p.id)));
